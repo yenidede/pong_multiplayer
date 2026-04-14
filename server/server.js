@@ -223,6 +223,64 @@ function getRoleForSocket(socketId) {
   return "spectator";
 }
 
+function clearDisconnectedPlayerSlots() {
+  if (players.left && !io.sockets.sockets.has(players.left)) {
+    players.left = null;
+    gameState.paddles.left.movingUp = false;
+    gameState.paddles.left.movingDown = false;
+  }
+
+  if (players.right && !io.sockets.sockets.has(players.right)) {
+    players.right = null;
+    gameState.paddles.right.movingUp = false;
+    gameState.paddles.right.movingDown = false;
+  }
+}
+
+function assignAvailableRole(socket) {
+  clearDisconnectedPlayerSlots();
+
+  let assignedRole = "spectator";
+
+  if (!players.left) {
+    players.left = socket.id;
+    assignedRole = "left";
+  } else if (!players.right) {
+    players.right = socket.id;
+    assignedRole = "right";
+  }
+
+  socket.emit("roleAssignment", {
+    role: assignedRole,
+    message: assignedRole === "spectator" ? "Room is full. Only two players can join." : null,
+  });
+
+  return assignedRole;
+}
+
+function promoteSpectatorsIfNeeded() {
+  clearDisconnectedPlayerSlots();
+
+  for (const socket of io.sockets.sockets.values()) {
+    if (!players.left && getRoleForSocket(socket.id) === "spectator") {
+      players.left = socket.id;
+      socket.emit("roleAssignment", {
+        role: "left",
+        message: null,
+      });
+      continue;
+    }
+
+    if (!players.right && getRoleForSocket(socket.id) === "spectator") {
+      players.right = socket.id;
+      socket.emit("roleAssignment", {
+        role: "right",
+        message: null,
+      });
+    }
+  }
+}
+
 function broadcastGameState() {
   io.emit("gameState", gameState);
 }
@@ -239,21 +297,7 @@ app.get("/health", (req, res) => {
 });
 
 io.on("connection", (socket) => {
-  let assignedRole = "spectator";
-
-  // First client becomes left player, second client becomes right player.
-  if (!players.left) {
-    players.left = socket.id;
-    assignedRole = "left";
-  } else if (!players.right) {
-    players.right = socket.id;
-    assignedRole = "right";
-  }
-
-  socket.emit("roleAssignment", {
-    role: assignedRole,
-    message: assignedRole === "spectator" ? "Room is full. Only two players can join." : null,
-  });
+  let assignedRole = assignAvailableRole(socket);
 
   socket.emit("gameState", gameState);
 
@@ -296,6 +340,8 @@ io.on("connection", (socket) => {
       gameState.paddles.right.movingUp = false;
       gameState.paddles.right.movingDown = false;
     }
+
+    promoteSpectatorsIfNeeded();
 
     io.emit("playerLeft", {
       role: assignedRole,
