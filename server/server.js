@@ -15,6 +15,10 @@ const CLIENT_URLS = (process.env.CLIENT_URLS || "http://localhost:3000")
   .filter(Boolean);
 
 function isAllowedOrigin(origin) {
+  if (CLIENT_URLS.includes("*")) {
+    return true;
+  }
+
   // Allow same-origin or server-to-server requests without an Origin header.
   if (!origin) {
     return true;

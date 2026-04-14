@@ -1,56 +1,66 @@
-# Deployment Guide
+# Render Deployment
 
-Dieses Projekt wird am einfachsten als zwei Deployments betrieben:
+Dieses Projekt ist jetzt auf Render als Blueprint vorbereitet.
 
-- `client/` als Next.js Frontend
-- `server/` als Express + Socket.IO Backend
+## Dateien
 
-## 1. Frontend deployen
+- Root Blueprint: [render.yaml](./render.yaml)
+- Frontend Env-Beispiel: [client/.env.example](./client/.env.example)
+- Backend Env-Beispiel: [server/.env.example](./server/.env.example)
 
-Empfohlen: Vercel
+## Zielstruktur auf Render
 
-Build command:
+- `pong-backend` = Express + Socket.IO
+- `pong-frontend` = Next.js
 
-```bash
-npm run build
-```
+## Deployment auf Render
 
-Start command:
+1. Repository bei GitHub pushen
+2. In Render: `New +` -> `Blueprint`
+3. Repository verbinden
+4. Render liest automatisch die `render.yaml`
 
-```bash
-npm run start
-```
+## Wichtige Variable
 
-Umgebungsvariable im Frontend setzen:
-
-```env
-NEXT_PUBLIC_SERVER_URL=https://dein-backend.example.com
-```
-
-## 2. Backend deployen
-
-Empfohlen: Render, Railway oder Fly.io
-
-Start command:
-
-```bash
-npm run start
-```
-
-Umgebungsvariablen im Backend setzen:
+Beim Frontend wird diese Variable abgefragt:
 
 ```env
-PORT=4000
-CLIENT_URLS=https://dein-frontend.example.com
+NEXT_PUBLIC_SERVER_URL=https://dein-backend-service.onrender.com
 ```
 
-Falls du mehrere Frontend-URLs erlauben willst, trenne sie mit Komma:
+Trage dort die öffentliche URL des Backend-Services ein.
+
+Beispiel:
 
 ```env
-CLIENT_URLS=https://dein-frontend.example.com,https://www.dein-frontend.example.com
+NEXT_PUBLIC_SERVER_URL=https://pong-backend.onrender.com
 ```
 
-## 3. Lokale Entwicklung
+## Warum das Backend `CLIENT_URLS=*` nutzt
+
+Für Render ist das hier die einfachste Variante, damit Frontend und Backend sofort miteinander sprechen können, ohne dass du bei jedem Preview- oder Service-URL-Wechsel CORS nachziehen musst.
+
+Falls du es später strenger machen willst, kannst du stattdessen z. B. setzen:
+
+```env
+CLIENT_URLS=https://pong-frontend.onrender.com
+```
+
+oder mehrere Domains:
+
+```env
+CLIENT_URLS=https://pong-frontend.onrender.com,https://www.deine-domain.de
+```
+
+## Health Check
+
+Backend:
+
+```txt
+/health
+```
+
+## Lokale Entwicklung
 
 Frontend `client/.env`:
 
@@ -63,18 +73,4 @@ Backend `server/.env`:
 ```env
 PORT=4000
 CLIENT_URLS=http://localhost:3000
-```
-
-## 4. Health Check
-
-Der Backend-Health-Check liegt unter:
-
-```txt
-GET /health
-```
-
-Beispiel:
-
-```txt
-https://dein-backend.example.com/health
 ```
